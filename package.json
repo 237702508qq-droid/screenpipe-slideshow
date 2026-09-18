@@ -1,0 +1,15 @@
+{
+  "name": "screenpipe-value-slideshow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ScreenPipe 产品价值介绍 — HyperFrames 0.8.41 可交互网页演示（10 页 + 2 分支）",
+  "scripts": {
+    "start": "python3 -m http.server 8642 --bind 127.0.0.1",
+    "present": "npx hyperframes present ./composition",
+    "check": "python3 scripts/selfcheck.py"
+  },
+  "dependencies": {
+    "gsap": "3.13.0",
+    "hyperframes": "0.8.41"
+  }
+}
