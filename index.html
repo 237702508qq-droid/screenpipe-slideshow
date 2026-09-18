@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScreenPipe 产品价值介绍 — 交互式演示</title>
+
+  <!--
+    HyperFrames standalone slideshow harness (0.8.41).
+    Bundles are vendored locally under ./vendor — no CDN, fully offline.
+  -->
+  <script src="vendor/gsap.min.js"></script>
+  <script src="vendor/hyperframes-player.global.js"></script>
+  <script src="vendor/hyperframes-slideshow.global.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0e12; }
+    hyperframes-slideshow { background: #0a0e12; }
+  </style>
+</head>
+<body>
+  <!--
+    tabindex="0" is critical — <hyperframes-slideshow> binds keydown
+    (ArrowLeft/Right, Space, Backspace) to itself. Without it, arrow keys are dead.
+  -->
+  <hyperframes-slideshow
+    tabindex="0"
+    notes-storage-key="screenpipe-value-deck"
+    style="display: block; position: relative; width: 100vw; height: 100vh"
+  >
+    <hyperframes-player
+      interactive
+      style="position: absolute; inset: 0"
+      src="composition/index.html"
+    ></hyperframes-player>
+
+    <!--
+      DUPLICATED ISLAND — keep in sync with composition/index.html.
+      <hyperframes-slideshow> reads the manifest from its own innerHTML.
+    -->
+    <script type="application/hyperframes-slideshow+json">
+{
+  "slides": [
+    {
+      "sceneId": "p1-cover",
+      "notes": "开场：只说一句话——ScreenPipe 让 AI 记住你在电脑上做过的一切。点出 YC S26 和 21,600+ Star 建立信任，不要展开技术细节。"
+    },
+    {
+      "sceneId": "p2-positioning",
+      "notes": "定位页：Record / Rewind / Ask 三个动词讲清楚它是什么。强调差异：不是又一个 AI 助手，而是所有 AI 的记忆基础设施（本地 API + MCP）。",
+      "fragments": [
+        10.3,
+        10.7,
+        11.1,
+        11.5
+      ]
+    },
+    {
+      "sceneId": "p3-find",
+      "notes": "场景1：找回丢失的信息。用『我记得看过』到『我能找到』这句话收尾。指一下右侧截图里的搜索框和 0.4 秒结果。"
+    },
+    {
+      "sceneId": "p4-meeting",
+      "notes": "场景2：会议纪要。强调零操作：系统音频+麦克风本地转写、说话人分离，会后自动产出摘要和行动项。",
+      "fragments": [
+        30.3,
+        30.7
+      ]
+    },
+    {
+      "sceneId": "p5-mcp",
+      "notes": "场景3：给 AI 开天眼。现场感最强的点：一行命令 claude mcp add screenpipe。AI 从每次从零开始，变成了解你全部上下文的资深同事。"
+    },
+    {
+      "sceneId": "p6-faq",
+      "notes": "FAQ 上：隐私/性能/磁盘/多显示器。四个答案都用数字说话：100% 本地、CPU<20%、30GB/月、全显示器。",
+      "fragments": [
+        50.3,
+        50.7,
+        51.1,
+        51.5
+      ]
+    },
+    {
+      "sceneId": "p7-compare",
+      "notes": "FAQ 下 + 竞品对比。读表时先竖着读 ScreenPipe 一列（四个全✓），再点 Rewind/Recall 的闭源短板。定位一句话：闭源订阅产品 vs 可审计的开放基础设施。"
+    },
+    {
+      "sceneId": "p8-pipes",
+      "notes": "差异化杀手锏 Pipes：用 Markdown 文件定义的定时 AI 代理。三个分支卡片都可点击，每张卡深入一条。时间不够就只讲 time-breakdown。",
+      "fragments": [
+        70.3,
+        70.7,
+        71.1
+      ],
+      "hotspots": [
+        {
+          "id": "h-pipe-1",
+          "label": "深入 time-breakdown →",
+          "target": "pipe-detail",
+          "region": {
+            "x": 7,
+            "y": 95.5,
+            "w": 26,
+            "h": 5
+          }
+        },
+        {
+          "id": "h-pipe-2",
+          "label": "深入 ai-prompt-journal →",
+          "target": "pipe-detail",
+          "region": {
+            "x": 36.2,
+            "y": 95.5,
+            "w": 26,
+            "h": 5
+          }
+        },
+        {
+          "id": "h-pipe-3",
+          "label": "深入 video-export →",
+          "target": "pipe-detail",
+          "region": {
+            "x": 65.6,
+            "y": 95.5,
+            "w": 26,
+            "h": 5
+          }
+        }
+      ]
+    },
+    {
+      "sceneId": "p9-value",
+      "notes": "三大价值理由，分支卡片可点：找回时间 / AI 增强 / 数据主权。让听众自己选关心哪条深入。企业版一句话带过。",
+      "hotspots": [
+        {
+          "id": "h-value-1",
+          "label": "深入「找回时间」→",
+          "target": "value-reasons",
+          "region": {
+            "x": 7,
+            "y": 95.5,
+            "w": 26,
+            "h": 5
+          }
+        },
+        {
+          "id": "h-value-2",
+          "label": "深入「AI 增强」→",
+          "target": "value-reasons",
+          "region": {
+            "x": 36.2,
+            "y": 95.5,
+            "w": 26,
+            "h": 5
+          }
+        },
+        {
+          "id": "h-value-3",
+          "label": "深入「数据主权」→",
+          "target": "value-reasons",
+          "region": {
+            "x": 65.6,
+            "y": 95.5,
+            "w": 26,
+            "h": 5
+          }
+        }
+      ]
+    },
+    {
+      "sceneId": "p10-cta",
+      "notes": "收尾：免费方案包含屏幕+音频捕获和近期搜索，先让人下载用起来。开发者提 localhost:3030 REST API 和 MCP。CTA：Download for free。"
+    }
+  ],
+  "slideSequences": [
+    {
+      "id": "pipe-detail",
+      "label": "Pipe 实例详解",
+      "slides": [
+        {
+          "sceneId": "b-pipe",
+          "notes": "分支页：深入讲一个 Pipe 的结构——Markdown 定义 + 定时触发 + 读取屏幕历史 + 产出。回到主线按 Esc 或上一步。"
+        }
+      ]
+    },
+    {
+      "id": "value-reasons",
+      "label": "价值理由详解",
+      "slides": [
+        {
+          "sceneId": "b-value",
+          "notes": "分支页：把三大理由展开成对照——搜索成本、AI 输出质量、数据主权各给一个可量化对比。按返回回到 P9。"
+        }
+      ]
+    }
+  ]
+}
+    </script>
+  </hyperframes-slideshow>
+  <!-- The built-in slideshow nav capsule renders Present; no wrapper-level button. -->
+
+  <script>
+    // Hotspot bridge: the composition posts {source:"hf-deck-hotspot"} when a
+    // branch card is clicked; here we drive the slideshow's public API.
+    (function () {
+      var slideEl = document.querySelector("hyperframes-slideshow");
+      function enterBranch(seqId) {
+        if (!slideEl) return;
+        try {
+          var c = slideEl.controller;
+          if (c && typeof c.enterBranch === "function") {
+            c.enterBranch(seqId);
+          }
+        } catch (e) {}
+      }
+      window.addEventListener("message", function (e) {
+        var d = e.data;
+        if (!d || d.source !== "hf-deck-hotspot" || !d.sequenceId) return;
+        enterBranch(d.sequenceId);
+      });
+    })();
+  </script>
+</body>
+</html>
