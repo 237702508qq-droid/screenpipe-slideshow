@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>ScreenPipe 产品价值介绍 — Composition</title>
+<!--
+  GSAP must be loaded INSIDE the composition iframe: the composition's own
+  timeline script and the injected HyperFrames runtime both need window.gsap.
+  The player does NOT inject it.
+-->
+<script src="../vendor/gsap.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0e12;
+    --card: #161c24;
+    --card2: #12181f;
+    --line: #2a323d;
+    --ink: #f2f6fa;
+    --ink2: #b7c0cb;
+    --ink3: #8a94a1;
+    --acc: #10e298;
+    --acc-dim: rgba(16, 226, 152, 0.14);
+    --warn: #f0b429;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { margin: 0; padding: 0; background: #0a0e12; }
+  body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Noto Sans CJK SC', 'Noto Sans SC', system-ui, sans-serif; }
+
+  .scene-frame {
+    position: absolute; top: 0; left: 0;
+    width: 1920px; height: 1080px;
+    overflow: hidden;
+    opacity: 0; visibility: hidden; pointer-events: none;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .scene-frame.is-active { opacity: 1; visibility: visible; pointer-events: auto; }
+
+  .slide {
+    position: absolute; inset: 0;
+    padding: 90px 130px 130px;
+    display: flex; flex-direction: column;
+    background:
+      radial-gradient(1100px 600px at 82% -10%, rgba(16,226,152,0.09), transparent 60%),
+      radial-gradient(900px 500px at -5% 110%, rgba(56,130,246,0.07), transparent 60%),
+      var(--bg);
+  }
+  .eyebrow {
+    font-size: 26px; letter-spacing: 6px; color: var(--acc);
+    font-weight: 700; margin-bottom: 22px; display: flex; align-items: center; gap: 16px;
+  }
+  .eyebrow::before { content: ""; width: 44px; height: 4px; background: var(--acc); border-radius: 2px; }
+  h2.head { font-size: 62px; line-height: 1.25; font-weight: 800; letter-spacing: 1px; }
+  h2.head em { font-style: normal; color: var(--acc); }
+  .sub { font-size: 30px; color: var(--ink2); margin-top: 16px; line-height: 1.5; }
+
+  .cards { display: flex; gap: 34px; margin-top: 52px; flex: 1; }
+  .card {
+    flex: 1; background: var(--card); border: 1px solid var(--line);
+    border-radius: 20px; padding: 38px 36px;
+    display: flex; flex-direction: column;
+  }
+  .card .k { font-size: 52px; }
+  .card .t { font-size: 33px; font-weight: 700; margin: 20px 0 12px; }
+  .card .d { font-size: 26px; color: var(--ink2); line-height: 1.55; }
+  .card.hl { border-color: var(--acc); background: linear-gradient(180deg, rgba(16,226,152,0.08), var(--card)); }
+
+  .shot {
+    background: var(--card2); border: 1px solid var(--line); border-radius: 18px;
+    overflow: hidden; box-shadow: 0 24px 70px rgba(0,0,0,0.45);
+    display: flex; flex-direction: column;
+  }
+  .shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .shot .cap {
+    padding: 16px 24px; font-size: 22px; color: var(--ink3);
+    border-top: 1px solid var(--line); background: var(--card);
+    white-space: nowrap; overflow: hidden;
+  }
+
+  .split { display: flex; gap: 48px; margin-top: 46px; flex: 1; min-height: 0; }
+  .split .left { flex: 1.15; display: flex; flex-direction: column; }
+  .split .right { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .split .right .shot { flex: 1; min-height: 0; }
+  .split .right .shot .imgwrap { flex: 1; min-height: 0; overflow: hidden; }
+  .split .right .shot img { width: 100%; height: 100%; object-fit: contain; object-position: top center; background: #0d1117; }
+
+  .steps { display: flex; flex-direction: column; gap: 26px; margin-top: 10px; }
+  .step { display: flex; gap: 22px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px 28px; }
+  .step .no {
+    width: 52px; height: 52px; flex: none; border-radius: 50%;
+    background: var(--acc-dim); color: var(--acc); font-weight: 800; font-size: 26px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step .st { font-size: 30px; font-weight: 700; }
+  .step .sd { font-size: 25px; color: var(--ink2); margin-top: 6px; line-height: 1.5; }
+  .step .sd code { font-family: ui-monospace, 'Noto Sans Mono CJK SC', monospace; color: var(--acc); font-size: 24px; }
+
+  .valuebar {
+    margin-top: 40px; background: linear-gradient(90deg, rgba(16,226,152,0.12), rgba(16,226,152,0.03));
+    border: 1px solid rgba(16,226,152,0.4); border-radius: 16px;
+    padding: 26px 34px; font-size: 30px; font-weight: 700; color: var(--ink);
+  }
+  .valuebar em { font-style: normal; color: var(--acc); }
+
+  .qa { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 48px; flex: 1; }
+  .qa .item { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 30px 32px; }
+  .qa .q { font-size: 29px; font-weight: 800; color: var(--ink); display: flex; gap: 14px; align-items: baseline; }
+  .qa .q .qm { color: var(--acc); font-size: 33px; }
+  .qa .a { font-size: 25px; color: var(--ink2); margin-top: 14px; line-height: 1.6; }
+  .qa .a b { color: var(--ink); }
+  .qa .a em { font-style: normal; color: var(--acc); font-weight: 700; }
+
+  table.cmp { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 44px; font-size: 27px; }
+  table.cmp th, table.cmp td { padding: 22px 24px; text-align: left; border-bottom: 1px solid var(--line); }
+  table.cmp th { color: var(--ink3); font-size: 24px; font-weight: 700; letter-spacing: 1px; }
+  table.cmp td:first-child { color: var(--ink2); }
+  table.cmp .us { color: var(--acc); font-weight: 800; background: rgba(16,226,152,0.07); }
+  table.cmp th.us { color: var(--acc); background: rgba(16,226,152,0.07); }
+  table.cmp .no { color: var(--ink3); }
+  .cmpnote { margin-top: 34px; font-size: 28px; color: var(--ink2); }
+  .cmpnote em { font-style: normal; color: var(--acc); font-weight: 700; }
+
+  .statrow { display: flex; gap: 34px; margin: 46px 0 30px; }
+  .stat { flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 34px 36px; }
+  .stat .n { font-size: 66px; font-weight: 800; color: var(--acc); letter-spacing: 1px; }
+  .stat .l { font-size: 26px; color: var(--ink2); margin-top: 10px; line-height: 1.45; }
+
+  .branchcards { display: flex; gap: 34px; margin-top: 48px; flex: 1; }
+  .bcard {
+    flex: 1; position: relative; cursor: pointer;
+    background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+    padding: 40px 36px; display: flex; flex-direction: column;
+    transition: transform .25s ease, border-color .25s ease, background .25s ease;
+  }
+  .bcard:hover { transform: translateY(-8px); border-color: var(--acc); background: linear-gradient(180deg, rgba(16,226,152,0.1), var(--card)); }
+  .bcard .tag { font-size: 23px; color: var(--acc); font-weight: 800; letter-spacing: 3px; }
+  .bcard .bt { font-size: 36px; font-weight: 800; margin: 18px 0 14px; }
+  .bcard .bd { font-size: 26px; color: var(--ink2); line-height: 1.6; }
+  .bcard .go { margin-top: auto; padding-top: 26px; font-size: 25px; color: var(--acc); font-weight: 700; }
+  .hint {
+    margin-top: 30px; font-size: 24px; color: var(--ink3);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .hint .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--acc); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; margin-top: 50px; flex: 1; }
+  .kv { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 36px 38px; }
+  .kv .kt { font-size: 31px; font-weight: 800; display: flex; align-items: center; gap: 16px; }
+  .kv .kt .ic { color: var(--acc); font-size: 36px; }
+  .kv .kd { font-size: 26px; color: var(--ink2); margin-top: 16px; line-height: 1.65; }
+  .kv .kd em { font-style: normal; color: var(--acc); font-weight: 700; }
+  .kv .kd code { font-family: ui-monospace, 'Noto Sans Mono CJK SC', monospace; color: var(--acc); font-size: 24px; }
+
+  .pricecards { display: flex; gap: 32px; margin-top: 44px; }
+  .price {
+    flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 28px 30px;
+  }
+  .price .pn { font-size: 30px; font-weight: 800; }
+  .price .pp { font-size: 40px; font-weight: 800; color: var(--acc); margin: 10px 0 12px; }
+  .price .pf { font-size: 23px; color: var(--ink2); line-height: 1.7; }
+  .price.hl { border-color: var(--acc); background: linear-gradient(180deg, rgba(16,226,152,0.09), var(--card)); }
+
+  .cover { position: absolute; inset: 0; display: flex; }
+  .cover .ctext { flex: 1.25; padding: 150px 60px 120px 130px; display: flex; flex-direction: column; justify-content: center; }
+  .cover .cimg { flex: 1; padding: 150px 130px 150px 20px; display: flex; }
+  .cover .cimg .shot { flex: 1; }
+  .cover .cimg .shot .imgwrap { flex: 1; overflow: hidden; }
+  .cover .cimg .shot img { width: 100%; height: 100%; object-fit: cover; }
+  .logo { font-size: 46px; font-weight: 800; letter-spacing: 1px; display: flex; align-items: center; gap: 18px; margin-bottom: 60px; }
+  .logo .mark { width: 54px; height: 54px; border-radius: 14px; background: linear-gradient(135deg, var(--acc), #0a8f63); display: flex; align-items: center; justify-content: center; font-size: 30px; color: #04120c; font-weight: 900; }
+  .cover h1 { font-size: 150px; font-weight: 900; letter-spacing: 2px; line-height: 1.05; }
+  .cover h1 span { color: var(--acc); }
+  .cover .tagline { font-size: 46px; color: var(--ink); font-weight: 700; margin-top: 40px; line-height: 1.5; }
+  .cover .badges { display: flex; gap: 18px; margin-top: 56px; flex-wrap: wrap; }
+  .badge { border: 1px solid var(--line); background: var(--card); color: var(--ink2); font-size: 24px; padding: 12px 24px; border-radius: 999px; }
+  .badge b { color: var(--acc); font-weight: 800; }
+  .cover .foot { margin-top: 70px; font-size: 25px; color: var(--ink3); letter-spacing: 2px; }
+
+  .endctas { display: flex; gap: 30px; margin-top: 54px; }
+  .cta {
+    display: inline-flex; align-items: center; gap: 14px;
+    background: var(--acc); color: #04120c; font-weight: 800; font-size: 30px;
+    padding: 22px 44px; border-radius: 999px;
+  }
+  .cta.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .cta.ghost code { font-family: ui-monospace, 'Noto Sans Mono CJK SC', monospace; font-size: 26px; color: var(--acc); }
+
+  /* fragment elements start hidden; root timeline reveals them at hold times */
+  .frag { opacity: 0; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     JSON ISLAND — slideshow manifest (single source of truth)
+     ============================================================ -->
+<script type="application/hyperframes-slideshow+json">
+{
+  "slides": [
+    {
+      "sceneId": "p1-cover",
+      "notes": "开场：只说一句话——ScreenPipe 让 AI 记住你在电脑上做过的一切。点出 YC S26 和 21,600+ Star 建立信任，不要展开技术细节。"
+    },
+    {
+      "sceneId": "p2-positioning",
+      "notes": "定位页：Record / Rewind / Ask 三个动词讲清楚它是什么。强调差异：不是又一个 AI 助手，而是所有 AI 的记忆基础设施（本地 API + MCP）。",
+      "fragments": [
+        10.3,
+        10.7,
+        11.1,
+        11.5
+      ]
+    },
+    {
+      "sceneId": "p3-find",
+      "notes": "场景1：找回丢失的信息。用『我记得看过』到『我能找到』这句话收尾。指一下右侧截图里的搜索框和 0.4 秒结果。"
+    },
+    {
+      "sceneId": "p4-meeting",
+      "notes": "场景2：会议纪要。强调零操作：系统音频+麦克风本地转写、说话人分离，会后自动产出摘要和行动项。",
+      "fragments": [
+        30.3,
+        30.7
+      ]
+    },
+    {
+      "sceneId": "p5-mcp",
+      "notes": "场景3：给 AI 开天眼。现场感最强的点：一行命令 claude mcp add screenpipe。AI 从每次从零开始，变成了解你全部上下文的资深同事。"
+    },
+    {
+      "sceneId": "p6-faq",
+      "notes": "FAQ 上：隐私/性能/磁盘/多显示器。四个答案都用数字说话：100% 本地、CPU<20%、30GB/月、全显示器。",
+      "fragments": [
+        50.3,
+        50.7,
+        51.1,
+        51.5
+      ]
+    },
+    {
+      "sceneId": "p7-compare",
+      "notes": "FAQ 下 + 竞品对比。读表时先竖着读 ScreenPipe 一列（四个全✓），再点 Rewind/Recall 的闭源短板。定位一句话：闭源订阅产品 vs 可审计的开放基础设施。"
+    },
+    {
+      "sceneId": "p8-pipes",
+      "notes": "差异化杀手锏 Pipes：用 Markdown 文件定义的定时 AI 代理。三个分支卡片都可点击，每张卡深入一条。时间不够就只讲 time-breakdown。",
+      "fragments": [
+        70.3,
+        70.7,
+        71.1
+      ],
+      "hotspots": [
+        {
+          "id": "h-pipe-1",
+          "label": "深入 time-breakdown →",
+          "target": "pipe-detail",
+          "region": {
+            "x": 7,
+            "y": 95.5,
+            "w": 26,
+            "h": 5
+          }
+        },
+        {
+          "id": "h-pipe-2",
+          "label": "深入 ai-prompt-journal →",
+          "target": "pipe-detail",
+          "region": {
+            "x": 36.2,
+            "y": 95.5,
+            "w": 26,
+            "h": 5
+          }
+        },
+        {
+          "id": "h-pipe-3",
+          "label": "深入 video-export →",
+          "target": "pipe-detail",
+          "region": {
+            "x": 65.6,
+            "y": 95.5,
+            "w": 26,
+            "h": 5
+          }
+        }
+      ]
+    },
+    {
+      "sceneId": "p9-value",
+      "notes": "三大价值理由，分支卡片可点：找回时间 / AI 增强 / 数据主权。让听众自己选关心哪条深入。企业版一句话带过。",
+      "hotspots": [
+        {
+          "id": "h-value-1",
+          "label": "深入「找回时间」→",
+          "target": "value-reasons",
+          "region": {
+            "x": 7,
+            "y": 95.5,
+            "w": 26,
+            "h": 5
+          }
+        },
+        {
+          "id": "h-value-2",
+          "label": "深入「AI 增强」→",
+          "target": "value-reasons",
+          "region": {
+            "x": 36.2,
+            "y": 95.5,
+            "w": 26,
+            "h": 5
+          }
+        },
+        {
+          "id": "h-value-3",
+          "label": "深入「数据主权」→",
+          "target": "value-reasons",
+          "region": {
+            "x": 65.6,
+            "y": 95.5,
+            "w": 26,
+            "h": 5
+          }
+        }
+      ]
+    },
+    {
+      "sceneId": "p10-cta",
+      "notes": "收尾：免费方案包含屏幕+音频捕获和近期搜索，先让人下载用起来。开发者提 localhost:3030 REST API 和 MCP。CTA：Download for free。"
+    }
+  ],
+  "slideSequences": [
+    {
+      "id": "pipe-detail",
+      "label": "Pipe 实例详解",
+      "slides": [
+        {
+          "sceneId": "b-pipe",
+          "notes": "分支页：深入讲一个 Pipe 的结构——Markdown 定义 + 定时触发 + 读取屏幕历史 + 产出。回到主线按 Esc 或上一步。"
+        }
+      ]
+    },
+    {
+      "id": "value-reasons",
+      "label": "价值理由详解",
+      "slides": [
+        {
+          "sceneId": "b-value",
+          "notes": "分支页：把三大理由展开成对照——搜索成本、AI 输出质量、数据主权各给一个可量化对比。按返回回到 P9。"
+        }
+      ]
+    }
+  ]
+}
+    </script>
+
+<div data-composition-id="root" data-start="0" data-duration="120" data-width="1920" data-height="1080" style="position:relative;width:1920px;height:1080px;overflow:hidden">
+
+<!-- ============ P1 封面 ============ -->
+<div id="p1-cover" class="scene-frame" data-composition-id="p1-cover" data-start="0" data-duration="10" data-label="封面">
+  <div class="slide">
+    <div class="cover">
+      <div class="ctext">
+        <div class="logo" data-anim><div class="mark">S</div>screenpipe</div>
+        <h1 data-anim>Screen<span>Pipe</span></h1>
+        <div class="tagline" data-anim>让 AI 记住你在电脑上<br/>做过的一切</div>
+        <div class="badges" data-anim>
+          <div class="badge">AI 代理的<b>「情景记忆」基础设施</b></div>
+          <div class="badge"><b>YC S26</b></div>
+          <div class="badge">GitHub <b>21,600+</b> Star</div>
+        </div>
+        <div class="foot" data-anim>本地优先 · macOS / Windows / Linux · 开源可审计</div>
+      </div>
+      <div class="cimg">
+        <div class="shot" data-anim>
+          <div class="imgwrap"><img src="../assets/photo-cover.png" alt="工作场景" /></div>
+          <div class="cap">你的每一次屏幕活动，都成为 AI 可用的记忆</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ P2 一句话定位 ============ -->
+<div id="p2-positioning" class="scene-frame" data-composition-id="p2-positioning" data-start="10" data-duration="10" data-label="一句话定位">
+  <div class="slide">
+    <div class="eyebrow">它是什么</div>
+    <h2 class="head" data-anim>持续记录屏幕与音频 → 本地存储 → 供任何 AI 调用的<em>「计算机历史记忆层」</em></h2>
+    <div class="cards">
+      <div class="card frag" id="p2-c1"><div class="k">⏺</div><div class="t">Record 记录</div><div class="d">屏幕帧 + OCR、麦克风 + 系统音频转写、无障碍树结构化数据</div></div>
+      <div class="card frag" id="p2-c2"><div class="k">⏪</div><div class="t">Rewind 回溯</div><div class="d">自然语言搜索你的全部历史，秒级返回截图与上下文</div></div>
+      <div class="card frag" id="p2-c3"><div class="k">💬</div><div class="t">Ask 提问</div><div class="d">本地 API + MCP 服务器，任何 AI 都能读取你的工作上下文</div></div>
+    </div>
+    <div class="valuebar frag" id="p2-bar">不是又一个 AI 助手，而是<em>所有 AI 的「记忆基础设施」</em></div>
+  </div>
+</div>
+
+<!-- ============ P3 典型场景1：找回丢失的信息 ============ -->
+<div id="p3-find" class="scene-frame" data-composition-id="p3-find" data-start="20" data-duration="10" data-label="场景：找回丢失的信息">
+  <div class="slide">
+    <div class="eyebrow">典型场景 1</div>
+    <h2 class="head" data-anim>把「我记得看过」变成<em>「我能找到」</em></h2>
+    <div class="split">
+      <div class="left">
+        <div class="steps">
+          <div class="step" data-anim><div class="no">!</div><div><div class="st">上周看过的网页 / 聊过的对话，现在找不到</div><div class="sd">翻浏览器历史、翻聊天记录、搜邮箱——耗时且常常一无所获</div></div></div>
+          <div class="step" data-anim><div class="no">→</div><div><div class="st">用一句话问 ScreenPipe</div><div class="sd">「上周关于项目 deadline 的讨论」→ 秒级返回截图 + 上下文</div></div></div>
+          <div class="step" data-anim><div class="no">✓</div><div><div class="st">搜索成本：翻 10 分钟记录 → 问一句话</div><div class="sd">屏幕 + 音频历史全部可检索，时间、应用、内容三重定位</div></div></div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="shot" data-anim>
+          <div class="imgwrap"><img src="../assets/mock-search.png" alt="自然语言搜索界面" /></div>
+          <div class="cap">自然语言搜索 → 0.4 秒返回截图与对话上下文</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ P4 典型场景2：会议自动纪要 ============ -->
+<div id="p4-meeting" class="scene-frame" data-composition-id="p4-meeting" data-start="30" data-duration="10" data-label="场景：会议自动纪要">
+  <div class="slide">
+    <div class="eyebrow">典型场景 2</div>
+    <h2 class="head" data-anim>开完会，纪要已经<em>自动生成</em>——零操作</h2>
+    <div class="split">
+      <div class="left">
+        <div class="steps">
+          <div class="step" data-anim><div class="no">1</div><div><div class="st">自动捕获系统音频 + 麦克风</div><div class="sd">本地 Whisper 转写，说话人分离，不经过任何云端</div></div></div>
+          <div class="step frag" id="p4-s2"><div class="no">2</div><div><div class="st">会后自动产出摘要与行动项</div><div class="sd">谁说了什么 100% 可追溯，待办自动带出处</div></div></div>
+          <div class="step frag" id="p4-s3"><div class="no">3</div><div><div class="st">不用再分心记笔记</div><div class="sd">会议内容全程可回溯，专注讨论本身</div></div></div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="shot" data-anim>
+          <div class="imgwrap"><img src="../assets/mock-meeting.png" alt="会议转写与摘要界面" /></div>
+          <div class="cap">转写 · 说话人分离 · AI 摘要与行动项自动生成</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ P5 典型场景3：给 AI 开天眼 ============ -->
+<div id="p5-mcp" class="scene-frame" data-composition-id="p5-mcp" data-start="40" data-duration="10" data-label="场景：给 AI 开天眼">
+  <div class="slide">
+    <div class="eyebrow">典型场景 3</div>
+    <h2 class="head" data-anim>一行命令，给你的 AI 助手<em>「开天眼」</em></h2>
+    <div class="split">
+      <div class="left">
+        <div class="steps">
+          <div class="step" data-anim><div class="no">!</div><div><div class="st">用 Claude / Codex 总要花大量 prompt 解释背景</div><div class="sd">每次对话都从零开始，上下文越复杂解释成本越高</div></div></div>
+          <div class="step" data-anim><div class="no">→</div><div><div class="st">MCP 服务器让任何 AI 直接读取你的屏幕历史</div><div class="sd"><code>claude mcp add screenpipe</code> 一行命令接入，本地 REST API（localhost:3030）同步可用</div></div></div>
+          <div class="step" data-anim><div class="no">✓</div><div><div class="st">AI 从「每次从零开始」变成「了解你全部工作上下文的资深同事」</div><div class="sd">不用重复解释项目背景，输出直接对齐你的真实工作</div></div></div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="shot" data-anim>
+          <div class="imgwrap"><img src="../assets/mock-mcp-pipes.png" alt="MCP 接入与 Pipes" /></div>
+          <div class="cap">claude mcp add screenpipe → AI 获得完整工作上下文</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ P6 FAQ 上 ============ -->
+<div id="p6-faq" class="scene-frame" data-composition-id="p6-faq" data-start="50" data-duration="10" data-label="常见问题（上）">
+  <div class="slide">
+    <div class="eyebrow">用户最常问的四个问题</div>
+    <h2 class="head" data-anim>隐私、性能、磁盘、多屏——<em>用数字回答</em></h2>
+    <div class="qa">
+      <div class="item frag" id="p6-q1"><div class="q"><span class="qm">Q1</span>隐私安全吗？</div><div class="a"><em>100% 本地存储</em>，数据不离开设备；源代码可审计；隐私过滤器可排除敏感应用</div></div>
+      <div class="item frag" id="p6-q2"><div class="q"><span class="qm">Q2</span>电脑会变卡吗？</div><div class="a">事件驱动捕获（只在屏幕变化时截关键帧），<em>CPU &lt; 20%</em>、内存 &lt; 3GB；不录像，只截关键帧</div></div>
+      <div class="item frag" id="p6-q3"><div class="q"><span class="qm">Q3</span>磁盘占用多少？</div><div class="a">约 <em>30GB/月</em>，保留期可配置；新版采用 SQLite + Parquet 高效存储</div></div>
+      <div class="item frag" id="p6-q4"><div class="q"><span class="qm">Q4</span>支持多显示器吗？</div><div class="a">支持，<em>所有显示器同时捕获</em>（多数竞品只支持活动窗口）</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ P7 FAQ 下 + 竞品对比 ============ -->
+<div id="p7-compare" class="scene-frame" data-composition-id="p7-compare" data-start="60" data-duration="10" data-label="竞品对比">
+  <div class="slide">
+    <div class="eyebrow">与 Rewind / Microsoft Recall 有什么不同</div>
+    <h2 class="head" data-anim>「闭源订阅产品」vs <em>「可审计的开放基础设施」</em></h2>
+    <table class="cmp" data-anim>
+      <tr><th>关键维度</th><th class="us">ScreenPipe</th><th>Rewind / Limitless</th><th>MS Recall</th><th>Granola</th></tr>
+      <tr><td>源码可审计</td><td class="us">✓ 开源</td><td class="no">✗ 闭源</td><td class="no">✗ 闭源</td><td class="no">✗ 闭源</td></tr>
+      <tr><td>本地转写</td><td class="us">✓ 本地 Whisper</td><td class="no">部分云端</td><td class="no">✗</td><td class="no">云端</td></tr>
+      <tr><td>跨平台</td><td class="us">✓ macOS / Win / Linux</td><td class="no">✗ 仅 macOS</td><td class="no">✗ 仅 Windows</td><td class="no">✗</td></tr>
+      <tr><td>插件系统 · 自选模型</td><td class="us">✓ Pipes + 任意模型</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+    </table>
+    <div class="cmpnote" data-anim>竞品是卖给你的<em>产品</em>，ScreenPipe 是你可以审计、扩展、自托管的<em>基础设施</em></div>
+  </div>
+</div>
+
+<!-- ============ P8 Pipes 插件系统（三大价值理由分支卡片） ============ -->
+<div id="p8-pipes" class="scene-frame" data-composition-id="p8-pipes" data-start="70" data-duration="10" data-label="Pipes 插件系统">
+  <div class="slide">
+    <div class="eyebrow">差异化杀手锏</div>
+    <h2 class="head" data-anim>Pipes：写个 Markdown，就是一个<em>定时 AI 代理</em></h2>
+    <div class="sub" data-anim>从「被动记忆」升级为「主动自动化」——不只是一台录像机，是工作流引擎。点击卡片深入了解：</div>
+    <div class="branchcards">
+      <div class="bcard frag" id="p8-c1" data-hotspot="pipe-detail">
+        <div class="tag">BUILT-IN</div>
+        <div class="bt">⏱ time-breakdown</div>
+        <div class="bd">时间去向分析：每天的时间花在了哪些应用与项目上，自动生成日/周报告</div>
+        <div class="go">深入了解 →</div>
+      </div>
+      <div class="bcard frag" id="p8-c2" data-hotspot="pipe-detail">
+        <div class="tag">BUILT-IN</div>
+        <div class="bt">📝 ai-prompt-journal</div>
+        <div class="bd">AI 提示词日志：自动记录你对各个 AI 的 prompt，沉淀为可检索、可复用的资产</div>
+        <div class="go">深入了解 →</div>
+      </div>
+      <div class="bcard frag" id="p8-c3" data-hotspot="pipe-detail">
+        <div class="tag">BUILT-IN</div>
+        <div class="bt">🎬 video-export</div>
+        <div class="bd">屏幕活动视频：把一天的屏幕历史自动剪辑成延时视频，回看与分享</div>
+        <div class="go">深入了解 →</div>
+      </div>
+    </div>
+    <div class="hint" data-anim><span class="dot"></span>开发者：在 ~/.screenpipe/pipes/ 放一个 Markdown 文件即可创建自己的 Pipe</div>
+  </div>
+</div>
+
+<!-- ============ P9 主要价值总结（分支卡片） ============ -->
+<div id="p9-value" class="scene-frame" data-composition-id="p9-value" data-start="80" data-duration="10" data-label="三大价值理由">
+  <div class="slide">
+    <div class="eyebrow">为什么值得装</div>
+    <h2 class="head" data-anim>给你的<em>三大理由</em>——点击进入你关心的那条</h2>
+    <div class="branchcards">
+      <div class="bcard" id="p9-c1" data-hotspot="value-reasons">
+        <div class="tag">理由 1</div>
+        <div class="bt">⏳ 找回时间</div>
+        <div class="bd">搜索成本从「翻 10 分钟记录」降到「问一句话」；会议纪要自动生成</div>
+        <div class="go">深入了解 →</div>
+      </div>
+      <div class="bcard" id="p9-c2" data-hotspot="value-reasons">
+        <div class="tag">理由 2</div>
+        <div class="bt">🤖 AI 增强</div>
+        <div class="bd">你的 Claude / Codex / Cursor 获得完整上下文，输出质量倍增；支持任意模型（本地或云端）</div>
+        <div class="go">深入了解 →</div>
+      </div>
+      <div class="bcard" id="p9-c3" data-hotspot="value-reasons">
+        <div class="tag">理由 3</div>
+        <div class="bt">🔒 数据主权</div>
+        <div class="bd">本地存储 + 源码可审计，对比 Rewind / Recall 的闭源黑盒——你的数据你做主</div>
+        <div class="go">深入了解 →</div>
+      </div>
+    </div>
+    <div class="hint" data-anim><span class="dot"></span>企业版支持 SSO / MDM / 团队空间 / 保留策略</div>
+  </div>
+</div>
+
+<!-- ============ P10 结尾 ============ -->
+<div id="p10-cta" class="scene-frame" data-composition-id="p10-cta" data-start="90" data-duration="10" data-label="开始使用">
+  <div class="slide">
+    <div class="eyebrow">开始使用</div>
+    <h2 class="head" data-anim>Download for free —— 让你的 AI 从今天开始<em>「记得你」</em></h2>
+    <div class="pricecards">
+      <div class="price" data-anim><div class="pn">Free</div><div class="pp">¥0</div><div class="pf">屏幕+音频捕获<br/>近期搜索<br/>分享上下文给 AI</div></div>
+      <div class="price hl" data-anim><div class="pn">Basic</div><div class="pp">$21/mo</div><div class="pf">完整历史<br/>更长期保留<br/>高级 Pipes</div></div>
+      <div class="price" data-anim><div class="pn">Business</div><div class="pp">$42/seat</div><div class="pf">团队协作空间<br/>SSO / MDM<br/>保留策略</div></div>
+      <div class="price" data-anim><div class="pn">Enterprise</div><div class="pp">定制</div><div class="pf">私有化部署<br/>审计与合规<br/>专属支持</div></div>
+    </div>
+    <div class="endctas" data-anim>
+      <div class="cta">⬇ screenpipe.com 下载</div>
+      <div class="cta ghost">开发者：<code>localhost:3030</code> REST API + JS/TS SDK + MCP</div>
+    </div>
+    <div class="hint" data-anim><span class="dot"></span>macOS / Windows / Linux 全平台 · 开源可审计 · 本地优先</div>
+  </div>
+</div>
+
+<!-- ============ 分支页 B1：Pipe 详解 ============ -->
+<div id="b-pipe" class="scene-frame" data-composition-id="b-pipe" data-start="100" data-duration="10" data-label="分支：Pipe 详解">
+  <div class="slide">
+    <div class="eyebrow">分支 · Pipe 实例详解</div>
+    <h2 class="head" data-anim>一个 Pipe = Markdown 文件 + <em>定时运行的 AI 代理</em></h2>
+    <div class="split">
+      <div class="left">
+        <div class="steps">
+          <div class="step" data-anim><div class="no">1</div><div><div class="st">定义：一个 Markdown 文件</div><div class="sd">放在 <code>~/.screenpipe/pipes/</code>，用 prompt 描述任务与触发周期，无需写代码</div></div></div>
+          <div class="step" data-anim><div class="no">2</div><div><div class="st">运行：按计划自动触发</div><div class="sd">读取你的屏幕历史 / 音频转写 / 无障碍树数据，调用你选的 AI 模型</div></div></div>
+          <div class="step" data-anim><div class="no">3</div><div><div class="st">产出：直接送进你的工作流</div><div class="sd">日报、摘要、视频、提醒——从「被动记忆」升级为「主动自动化」</div></div></div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="shot" data-anim>
+          <div class="imgwrap"><img src="../assets/mock-mcp-pipes.png" alt="Pipes 目录" /></div>
+          <div class="cap">内置 Pipes：time-breakdown · ai-prompt-journal · video-export</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 分支页 B2：价值理由详解 ============ -->
+<div id="b-value" class="scene-frame" data-composition-id="b-value" data-start="110" data-duration="10" data-label="分支：价值理由详解">
+  <div class="slide">
+    <div class="eyebrow">分支 · 三大价值理由详解</div>
+    <h2 class="head" data-anim>三个理由，<em>各给一笔账</em></h2>
+    <div class="statrow">
+      <div class="stat" data-anim><div class="n">10 分钟 → 1 句话</div><div class="l">找回时间：信息检索从人工翻记录，变成自然语言提问，秒级返回截图与上下文</div></div>
+      <div class="stat" data-anim><div class="n">2×</div><div class="l">AI 增强：带完整上下文的 AI 输出质量倍增；模型自选（本地 / 云端），不被单一厂商锁定</div></div>
+      <div class="stat" data-anim><div class="n">100%</div><div class="l">数据主权：本地存储 + MIT 开源可审计；对比 Rewind / Recall 闭源黑盒，你的数据你做主</div></div>
+    </div>
+    <div class="valuebar" data-anim>记住的不只是内容，还有<em>出处</em>——每个结论都能回溯到那一帧屏幕、那段对话</div>
+  </div>
+</div>
+
+</div><!-- /root composition -->
+
+<!-- ============================================================
+     Timelines (scene-local seconds) — paused; engine drives seek
+     ============================================================ -->
+<script>
+(function () {
+  window.__timelines = window.__timelines || {};
+  gsap.registerPlugin();
+
+  var SCENES = [
+    { id: "p1-cover",       start: 0,   duration: 10 },
+    { id: "p2-positioning", start: 10,  duration: 10 },
+    { id: "p3-find",        start: 20,  duration: 10 },
+    { id: "p4-meeting",     start: 30,  duration: 10 },
+    { id: "p5-mcp",         start: 40,  duration: 10 },
+    { id: "p6-faq",         start: 50,  duration: 10 },
+    { id: "p7-compare",     start: 60,  duration: 10 },
+    { id: "p8-pipes",       start: 70,  duration: 10 },
+    { id: "p9-value",       start: 80,  duration: 10 },
+    { id: "p10-cta",        start: 90,  duration: 10 },
+    { id: "b-pipe",         start: 100, duration: 10 },
+    { id: "b-value",        start: 110, duration: 10 }
+  ];
+  var TOTAL = 120;
+  window.__hfScenes = SCENES;
+  window.__hfTotalSeconds = TOTAL;
+
+  // Fragment hold-point definitions (composition-absolute seconds, match island)
+  var FRAGMENTS = {
+    "p2-positioning": [
+      { t: 10.3, el: "p2-c1" },
+      { t: 10.7, el: "p2-c2" },
+      { t: 11.1, el: "p2-c3" },
+      { t: 11.5, el: "p2-bar" }
+    ],
+    "p4-meeting": [
+      { t: 30.3, el: "p4-s2" },
+      { t: 30.7, el: "p4-s3" }
+    ],
+    "p6-faq": [
+      { t: 50.3, el: "p6-q1" },
+      { t: 50.7, el: "p6-q2" },
+      { t: 51.1, el: "p6-q3" },
+      { t: 51.5, el: "p6-q4" }
+    ],
+    "p8-pipes": [
+      { t: 70.3, el: "p8-c1" },
+      { t: 70.7, el: "p8-c2" },
+      { t: 71.1, el: "p8-c3" }
+    ]
+  };
+
+  // Root timeline — establishes the seekable range AND encodes fragment
+  // reveals at composition-absolute seconds. The slideshow controller's
+  // seek-to-hold-point drives visibility for free (crossed reveals show
+  // final state; seeking back collapses them). Verified 0.8.41 pattern.
+  var root = gsap.timeline({ paused: true });
+  root.to({}, { duration: TOTAL });
+  SCENES.forEach(function (s) {
+    (FRAGMENTS[s.id] || []).forEach(function (f) {
+      var el = document.getElementById(f.el);
+      if (!el) return;
+      // Reveal window ENDS at the hold time: seeking exactly to the hold
+      // shows the element fully revealed; seeking back collapses it.
+      root.set(el, { opacity: 0, y: 26 }, 0);
+      root.to(el, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, f.t - 0.35);
+    });
+  });
+  window.__timelines["root"] = root;
+
+  // Per-scene timelines: padded to full range, no tweens — the runtime
+  // nests these at data-start if/when it hosts; keep them real & paused.
+  SCENES.forEach(function (s) {
+    var tl = gsap.timeline({ paused: true });
+    tl.set({}, {}, s.duration);
+    window.__timelines[s.id] = tl;
+  });
+
+  // ---- Scene visibility controller (playhead-driven) ----
+  var lastActiveId = null;
+  function updateVisibility(t) {
+    for (var i = 0; i < SCENES.length; i++) {
+      var s = SCENES[i];
+      var el = document.getElementById(s.id);
+      if (!el) continue;
+      var active = t >= s.start && t < s.start + s.duration;
+      el.style.opacity = active ? "1" : "0";
+      el.style.visibility = active ? "visible" : "hidden";
+      el.style.pointerEvents = active ? "auto" : "none";
+      el.classList.toggle("is-active", active);
+      if (active && lastActiveId !== s.id) {
+        lastActiveId = s.id;
+        fireEntrance(el);
+      }
+    }
+  }
+  window.__hfSetTime = updateVisibility;
+
+  // data-anim entrance on slide activation (imperative — independent of playhead)
+  function fireEntrance(sceneEl) {
+    var animEls = sceneEl.querySelectorAll("[data-anim]");
+    if (!animEls.length) return;
+    gsap.from(animEls, {
+      opacity: 0, y: 30, duration: 0.45, stagger: 0.08,
+      ease: "power2.out", overwrite: true
+    });
+  }
+
+  updateVisibility(0);
+  root.eventCallback("onUpdate", function () {
+    updateVisibility(root.time());
+  });
+
+  // ---- Hotspot clicks: navigate via the slideshow player bridge ----
+  // data-hotspot="sequence-id" on branch cards; delegate through parent bridge.
+  document.addEventListener("click", function (ev) {
+    var el = ev.target.closest("[data-hotspot]");
+    if (!el) return;
+    ev.preventDefault();
+    var seq = el.getAttribute("data-hotspot");
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ source: "hf-deck-hotspot", sequenceId: seq }, "*");
+      }
+    } catch (e) {}
+  });
+
+  // ---- scenes manifest postMessage (standalone harness contract) ----
+  function postTimeline() {
+    try {
+      parent.postMessage({
+        source: "hf-preview",
+        type: "timeline",
+        durationInFrames: TOTAL * 30,
+        scenes: SCENES.map(function (s) {
+          return { id: s.id, start: s.start, duration: s.duration };
+        })
+      }, "*");
+    } catch (e) {}
+  }
+  if (document.readyState === "complete") {
+    setTimeout(postTimeline, 300);
+  } else {
+    window.addEventListener("load", function () {
+      setTimeout(postTimeline, 300);
+    });
+  }
+})();
+</script>
+</body>
+</html>
